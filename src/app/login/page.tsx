@@ -117,7 +117,7 @@ function LoginPage() {
           <div className="h-full w-full">
           <Image
             className="mx-auto h-full max-h-[500px] w-full rounded-md object-cover"
-            src={'/Login BG.jpg'}
+            src={'/LoginBG.jpg'}
             alt="login-image"
             width={2000}
             height={1000}

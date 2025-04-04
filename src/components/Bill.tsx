@@ -154,8 +154,14 @@ function Bill({ ...props }) {
             />
           </div>
           <div className="">
-            <Label>BILL NO</Label>
-            <Input type="text" value={billNum}  />
+            <Label htmlFor="billNo">BILL NO</Label>
+            <Input
+              id="billNo"
+              type="text"
+              value={billNum}
+              onChange={(e) => setBillNum(e.target.value)}
+              placeholder="Enter bill number"
+            />
           </div>
           <div className="">
             <Label>DATE</Label>
