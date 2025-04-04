@@ -160,7 +160,7 @@ function Bill({ ...props }) {
               type="text"
               value={billNum}
               onChange={(e) => setBillNum(e.target.value)}
-              placeholder="Enter bill number"
+              placeholder={`${billNum}`}
             />
           </div>
           <div className="">
