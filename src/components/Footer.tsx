@@ -14,8 +14,8 @@ function Footer() {
 
       <div className="right ">Developed by
         <span
-          onClick={() => openWebsite("https://splitxcom.vercel.app/")}
-          className="hover:text-lime-400 uppercase cursor-pointer "> splitx
+          onClick={() => openWebsite("https://splisxstudio.wixstudio.com/splisxstudio")}
+          className="hover:text-lime-400 uppercase cursor-pointer "> splisxStudio
           </span>
       </div>
     </footer>

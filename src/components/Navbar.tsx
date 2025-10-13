@@ -14,16 +14,16 @@ import { cn } from '@/lib/utils';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { Button } from './ui/button';
-import { redirect } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 
 function Navbar() {
   const router = useRouter();
+
   const handleLogout = async () => {
     try {
       const response = await axios.get('/api/users/logout');
       toast.success(response.data.message);
-      router.push('/login');
+      router.push('/login'); // Redirect to login after logout
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -44,9 +44,16 @@ function Navbar() {
     },
   ];
 
+  const handleHomeClick = () => {
+    router.push('/home'); // ✅ Works reliably in client components
+  };
+
   return (
-    <div className="px-20 py-5 flex items-center  justify-between">
-      <div className="logo text-4xl font-bold">Invoice Mate</div>
+    <div className="px-20 py-5 flex items-center justify-between">
+      <div className="logo text-4xl font-bold cursor-pointer" onClick={handleHomeClick}>
+        Invoice Mate
+      </div>
+
       <NavigationMenu>
         <NavigationMenuList className="px-0">
           <NavigationMenuItem>
@@ -63,7 +70,11 @@ function Navbar() {
           </NavigationMenuItem>
 
           <NavigationMenuItem className="cursor-pointer px-3">
-            <Link href={'/'}>Home</Link>
+            <NavigationMenuLink asChild>
+              <button onClick={handleHomeClick} className="text-base font-medium">
+                Home
+              </button>
+            </NavigationMenuLink>
           </NavigationMenuItem>
 
           <NavigationMenuItem className="cursor-pointer px-3">
