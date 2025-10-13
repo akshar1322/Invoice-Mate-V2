@@ -5,123 +5,148 @@ import LR from "@/models/lr.model";
 import Voucher from "@/models/voucher.model";
 import LoadingSlip from "@/models/loadingSlip.model";
 import convertDateFormat from "@/helpers/convertDateFormat";
+import { connectDB } from "@/dbConfig/dbConfig"; // ✅ correct import
 
 export async function POST(request: NextRequest) {
   try {
-    const { startDate, endDate, invoiceType, company } = await request.json();
+    console.log("🟡 [STEP 1] API HIT: /api/extract");
 
-    console.log("Data comed successfully")
-    let companyId;
+    // 1️⃣ Connect to MongoDB
+    await connectDB();
+    console.log("✅ [STEP 2] Database connected successfully");
+
+    // 2️⃣ Parse request body
+    const { startDate, endDate, invoiceType, company } = await request.json();
+    console.log("📩 [STEP 3] Data received from frontend:", {
+      startDate,
+      endDate,
+      invoiceType,
+      company,
+    });
+
+    // Normalize invoiceType and company to avoid mismatch
+    const invoiceTypeNormalized = (invoiceType || "").trim().toLowerCase();
+    const companyNormalized = (company || "").trim().toLowerCase();
+    console.log("🔄 [STEP 4] Normalized values:", {
+      invoiceTypeNormalized,
+      companyNormalized,
+    });
+
+    // 3️⃣ Convert dates
     const start = new Date(convertDateFormat(startDate));
     const end = new Date(convertDateFormat(endDate));
+    console.log("📅 [STEP 5] Converted date range:", { start, end });
 
-    if (company === "the-rising-freight-carriers") {
-      companyId = "663770b3b752100159dc12db";
-    } else if (company === "maa-saraswati-road-carriers") {
-      companyId = "66376f17b752100159dc12d9";
-    } else {
-      companyId = "663771e7b752100159dc12dd";
-    }
+    // 4️⃣ Map company
+    const companyMap: Record<string, string> = {
+      "the-rising-freight-carriers": "663770b3b752100159dc12db",
+      "maa-saraswati-road-carriers": "66376f17b752100159dc12d9",
+      default: "663771e7b752100159dc12dd",
+    };
 
-    console.log("company id selected and date also converted")
-    if (invoiceType === "loading-slips") {
-      const loadingSlips = await LoadingSlip.find({ company: companyId });
+    const companyId = companyMap[companyNormalized] || companyMap.default;
+    console.log("🏢 [STEP 6] Selected company ID:", companyId);
 
-      const transactions = await loadingSlips.filter((slip) => {
-        const sDate = convertDateFormat(slip.date || "");
-        const slipDate = new Date(sDate);
+    let transactions: any[] = [];
 
-        if (slipDate >= start && slipDate <= end) {
-          return slip;
-        }
-      });
+    // 5️⃣ Filter by invoice type
+    console.log("🔍 [STEP 7] Processing invoice type:", invoiceTypeNormalized);
 
-      return NextResponse.json({
-        message: "LOADING SLIPS EXTRACTED SUCCESSFULLY.",
-        status: 201,
-        transactions,
-      });
-    }
-    else if (invoiceType === "challans") {
-      const challans = await Challan.find({ company: companyId });
+    switch (invoiceTypeNormalized) {
+      case "loading-slips": {
+        console.log("🧾 Fetching loading slips...");
+        const loadingSlips = await LoadingSlip.find({ company: companyId });
+        console.log("📦 Found", loadingSlips.length, "loading slips total");
 
-      const transactions = await challans.filter((slip) => {
-        const sDate = convertDateFormat(slip.mainBillDate || "");
-        const slipDate = new Date(sDate);
+        transactions = loadingSlips.filter((s) => {
+          const d = new Date(convertDateFormat(s.date || ""));
+          return d >= start && d <= end;
+        });
+        console.log("✅ Filtered", transactions.length, "loading slips in range");
 
-        if (slipDate >= start && slipDate <= end) {
-          return slip;
-        }
-      });
+        return NextResponse.json({
+          message: "LOADING SLIPS EXTRACTED",
+          transactions,
+        });
+      }
 
-      return NextResponse.json({
-        message: "CHALLANS EXTRACTED SUCCESSFULLY.",
-        status: 201,
-        transactions,
-      });
-    }
-    else if (invoiceType === "bills") {
-      const bills = await Bill.find({ company: companyId });
+      case "challans": {
+        console.log("🧾 Fetching challans...");
+        const challans = await Challan.find({ company: companyId });
+        console.log("📦 Found", challans.length, "challans total");
 
-      const transactions = await bills.filter((slip) => {
-        const sDate = convertDateFormat(slip.mainBillDate || "");
+        transactions = challans.filter((s) => {
+          const d = new Date(convertDateFormat(s.mainBillDate || ""));
+          return d >= start && d <= end;
+        });
+        console.log("✅ Filtered", transactions.length, "challans in range");
 
-        const slipDate = new Date(sDate);
+        return NextResponse.json({
+          message: "CHALLANS EXTRACTED",
+          transactions,
+        });
+      }
 
-        if (slipDate >= start && slipDate <= end) {
-          return slip;
-        }
-      });
+      case "bills": {
+        console.log("🧾 Fetching bills...");
+        const bills = await Bill.find({ company: companyId });
+        console.log("📦 Found", bills.length, "bills total");
 
-      return NextResponse.json({
-        message: "BILLS EXTRACTED SUCCESSFULLY.",
-        status: 201,
-        transactions,
-      });
-    }
-    else if (invoiceType === "vouchers") {
-      const vouchers = await Voucher.find({ company: companyId });
+        transactions = bills.filter((s) => {
+          const d = new Date(convertDateFormat(s.mainBillDate || ""));
+          return d >= start && d <= end;
+        });
+        console.log("✅ Filtered", transactions.length, "bills in range");
 
-      const transactions = await vouchers.filter((slip) => {
-        const sDate = convertDateFormat(slip.date || "");
-        const slipDate = new Date(sDate);
+        return NextResponse.json({
+          message: "BILLS EXTRACTED",
+          transactions,
+        });
+      }
 
-        if (slipDate >= start && slipDate <= end) {
-          return slip;
-        }
-      });
+      case "vouchers": {
+        console.log("🧾 Fetching vouchers...");
+        const vouchers = await Voucher.find({ company: companyId });
+        console.log("📦 Found", vouchers.length, "vouchers total");
 
-      return NextResponse.json({
-        message: "VOUCHERS EXTRACTED SUCCESSFULLY.",
-        status: 201,
-        transactions,
-      });
-    }
-    else if (invoiceType === "lrs") {
-      const lrs = await LR.find({ company: companyId });
+        transactions = vouchers.filter((s) => {
+          const d = new Date(convertDateFormat(s.date || ""));
+          return d >= start && d <= end;
+        });
+        console.log("✅ Filtered", transactions.length, "vouchers in range");
 
-      const transactions = await lrs.filter((slip) => {
-        const sDate = convertDateFormat(slip.date || "");
-        const slipDate = new Date(sDate);
+        return NextResponse.json({
+          message: "VOUCHERS EXTRACTED",
+          transactions,
+        });
+      }
 
-        if (slipDate >= start && slipDate <= end) {
-          return slip;
-        }
-      });
+      case "lrs": {
+        console.log("🧾 Fetching LRs...");
+        const lrs = await LR.find({ company: companyId });
+        console.log("📦 Found", lrs.length, "LRs total");
 
-      return NextResponse.json({
-        message: "LRS EXTRACTED SUCCESSFULLY.",
-        status: 201,
-        transactions,
-      });
-    }
-    else {
-      return NextResponse.json(
-        { error: "Failure to extract data." },
-        { status: 501 }
-      );
+        transactions = lrs.filter((s) => {
+          const d = new Date(convertDateFormat(s.date || ""));
+          return d >= start && d <= end;
+        });
+        console.log("✅ Filtered", transactions.length, "LRs in range");
+
+        return NextResponse.json({
+          message: "LRS EXTRACTED",
+          transactions,
+        });
+      }
+
+      default:
+        console.warn("⚠️ [STEP 8] Invalid invoice type:", invoiceTypeNormalized);
+        return NextResponse.json(
+          { error: "Invalid invoice type", received: invoiceTypeNormalized },
+          { status: 400 }
+        );
     }
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 501 });
+    console.error("❌ [STEP 9] API ERROR:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
